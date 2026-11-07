@@ -168,6 +168,8 @@ class TurtleBotNavEnv(gym.Env):
             low=-1.0, high=1.0, shape=(2,), dtype=np.float32
         )
         self.x = self.y = self.yaw = 0.0
+        self.left_wheel_angle = 0.0
+        self.right_wheel_angle = 0.0
         self.goal = np.zeros(2)
         self.prev_dist = 0.0
         self.last_action = np.zeros(2, dtype=np.float32)
@@ -226,6 +228,8 @@ class TurtleBotNavEnv(gym.Env):
         self.data.mocap_quat[self.robot_mid] = [
             math.cos(self.yaw / 2), 0, 0, math.sin(self.yaw / 2)
         ]
+        self.data.qpos[0] = self.left_wheel_angle
+        self.data.qpos[1] = self.right_wheel_angle
         self.data.mocap_pos[self.goal_mid] = [
             self.goal[0], self.goal[1], 0.04
         ]
@@ -244,6 +248,8 @@ class TurtleBotNavEnv(gym.Env):
         super().reset(seed=seed)
         mujoco.mj_resetData(self.model, self.data)
         self.x, self.y, self.yaw = -1.6, -1.6, 0.0
+        self.left_wheel_angle = 0.0
+        self.right_wheel_angle = 0.0
 
         # Sample a goal that is not inside an obstacle.
         for _ in range(1000):
@@ -271,6 +277,12 @@ class TurtleBotNavEnv(gym.Env):
         self.x += v * math.cos(self.yaw) * self.dt
         self.y += v * math.sin(self.yaw) * self.dt
         self.yaw = wrap_angle(self.yaw + w * self.dt)
+
+        # Update wheel rotation angles: v_L = v - w*(L/2), v_R = v + w*(L/2)
+        v_left = v - w * (WHEEL_TRACK / 2.0)
+        v_right = v + w * (WHEEL_TRACK / 2.0)
+        self.left_wheel_angle += (v_left / WHEEL_R) * self.dt
+        self.right_wheel_angle += (v_right / WHEEL_R) * self.dt
         self.last_action = action.astype(np.float32)
         self.steps += 1
 
