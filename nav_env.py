@@ -7,7 +7,9 @@ import mujoco
 
 ARENA = 2.2
 LIDAR_MAX = 3.0
-ROBOT_R = 0.15
+ROBOT_R = 0.135          # chassis radius (270 mm diameter / 2)
+WHEEL_R = 0.049          # wheel radius (98 mm diameter / 2)
+WHEEL_TRACK = 0.220      # distance between left & right wheels (220 mm)
 OBSTACLES = [
     (-0.55, -0.15, 0.23),
     (0.55, 0.55, 0.25),
@@ -35,26 +37,105 @@ def make_xml():
     )
     return f"""
     <mujoco model="turtlebot_navigation">
+
+      <compiler angle="radian" meshdir="models"/>
+
       <option timestep="0.02" gravity="0 0 -9.81"/>
+
       <visual>
         <global offwidth="1000" offheight="800"/>
       </visual>
+
+      <asset>
+        <mesh name="base" file="Base.stl"
+              scale="0.001 0.001 0.001"/>
+
+        <mesh name="left_wheel" file="TireL.stl"
+              scale="0.001 0.001 0.001"/>
+
+        <mesh name="right_wheel" file="TireR.stl"
+              scale="0.001 0.001 0.001"/>
+      </asset>
+
       <worldbody>
+
         <light pos="0 0 5" dir="0 0 -1" diffuse="0.8 0.8 0.8"/>
+
         <geom name="floor" type="plane" size="5 5 0.1"
               rgba="0.85 0.85 0.85 1"/>
+
         {walls}
         {obstacles}
-        <body name="robot" mocap="true" pos="-1.6 -1.6 0.08">
-          <geom type="cylinder" size="0.15 0.08"
-                rgba="0.1 0.35 0.9 1"/>
-          <geom type="box" pos="0.12 0 0.02" size="0.07 0.035 0.025"
-                rgba="1 0.8 0.1 1"/>
+
+        <body name="robot" mocap="true" pos="-1.6 -1.6 0.049">
+
+          <geom name="base_bottom_visual"
+                type="mesh"
+                mesh="base"
+                pos="0 0 0"
+                euler="0 0 1.5707963"
+                rgba="0.2 0.22 0.25 1"
+                contype="0"
+                conaffinity="0"/>
+
+          <geom name="base_top_visual"
+                type="mesh"
+                mesh="base"
+                pos="0 0 0.045"
+                euler="0 0 1.5707963"
+                rgba="0.2 0.22 0.25 1"
+                contype="0"
+                conaffinity="0"/>
+
+          <body name="left_wheel" pos="0 0.110 0">
+            <joint name="left_wheel_joint" type="hinge" axis="0 1 0"/>
+            <geom name="left_wheel_visual"
+                  type="mesh"
+                  mesh="left_wheel"
+                  pos="0.00564 -0.00143 0.02077"
+                  euler="0 0 0"
+                  rgba="0.2 0.2 0.2 1"
+                  contype="0"
+                  conaffinity="0"/>
+          </body>
+
+          <body name="right_wheel" pos="0 -0.110 0">
+            <joint name="right_wheel_joint" type="hinge" axis="0 1 0"/>
+            <geom name="right_wheel_visual"
+                  type="mesh"
+                  mesh="right_wheel"
+                  pos="0.00564 -0.00143 -0.02077"
+                  euler="0 0 0"
+                  rgba="0.2 0.2 0.2 1"
+                  contype="0"
+                  conaffinity="0"/>
+          </body>
+
+          <!-- Front caster ball (along +X forward axis) -->
+          <geom name="front_caster"
+                type="sphere"
+                pos="0.115 0 -0.0365"
+                size="0.0125"
+                rgba="0.75 0.15 0.15 1"
+                contype="0"
+                conaffinity="0"/>
+
+          <!-- Rear caster ball (along -X rear axis) -->
+          <geom name="rear_caster"
+                type="sphere"
+                pos="-0.115 0 -0.0365"
+                size="0.0125"
+                rgba="0.75 0.15 0.15 1"
+                contype="0"
+                conaffinity="0"/>
+
         </body>
+
         <body name="goal" mocap="true" pos="1.4 1.4 0.04">
           <geom type="cylinder" size="0.13 0.025"
                 rgba="0.1 0.8 0.2 1"/>
         </body>
+
       </worldbody>
     </mujoco>
     """
@@ -141,7 +222,7 @@ class TurtleBotNavEnv(gym.Env):
         ]).astype(np.float32)
 
     def _sync_model(self):
-        self.data.mocap_pos[self.robot_mid] = [self.x, self.y, 0.08]
+        self.data.mocap_pos[self.robot_mid] = [self.x, self.y, 0.049]
         self.data.mocap_quat[self.robot_mid] = [
             math.cos(self.yaw / 2), 0, 0, math.sin(self.yaw / 2)
         ]

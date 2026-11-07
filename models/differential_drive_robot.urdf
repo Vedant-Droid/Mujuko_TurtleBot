@@ -1,0 +1,322 @@
+<?xml version="1.0"?>
+<!--
+  ===========================================================
+  CUSTOM DIFFERENTIAL-DRIVE ROBOT — Built From Scratch
+  ===========================================================
+  Designed in Fusion 360, exported STL meshes, hand-built URDF.
+
+  Measured from STL bounding boxes:
+    Chassis (Base.stl)    :  270 mm diameter disc, 5 mm thick
+    Left tire (TireL.stl) :  98 mm diameter, 39 mm wide
+    Right tire (TireR.stl):  98 mm diameter, 39 mm wide
+
+  Assembly (from Fusion 360 screenshots):
+    Wheel track (center-to-center) : 220 mm
+    2 × ball casters (front & rear): 25 mm diameter
+    2 × DC motors with gearboxes
+    2 × motor driver boards
+
+  Coordinate Convention (ROS standard):
+    X = forward,  Y = left,  Z = up
+    base_link origin = center of chassis, at wheel-axle height
+
+  Joint Tree:
+    base_footprint (ground projection)
+    └── base_link (chassis plate + internals, 2.5 kg)
+        ├── left_wheel_joint  (continuous, Y-axis) → left_wheel_link   (0.35 kg)
+        ├── right_wheel_joint (continuous, Y-axis) → right_wheel_link  (0.35 kg)
+        ├── front_caster_joint (fixed)             → front_caster_link (0.05 kg)
+        └── rear_caster_joint  (fixed)             → rear_caster_link  (0.05 kg)
+                                                     Total ≈ 3.30 kg
+-->
+<robot name="custom_diff_drive_robot">
+
+
+  <!-- ============================================== -->
+  <!--  MATERIALS                                     -->
+  <!-- ============================================== -->
+
+  <material name="chassis_blue">
+    <color rgba="0.2 0.4 0.8 1"/>
+  </material>
+
+  <material name="wheel_dark">
+    <color rgba="0.08 0.08 0.08 1"/>
+  </material>
+
+  <material name="caster_red">
+    <color rgba="0.75 0.15 0.15 1"/>
+  </material>
+
+
+  <!-- ============================================== -->
+  <!--  BASE FOOTPRINT (ground projection)            -->
+  <!-- ============================================== -->
+
+  <link name="base_footprint"/>
+
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <!-- base_link sits at wheel-axle height above ground -->
+    <!-- height = wheel_radius = 49.0 mm = 0.049 m        -->
+    <origin xyz="0 0 0.049" rpy="0 0 0"/>
+  </joint>
+
+
+  <!-- ============================================== -->
+  <!--  BASE CHASSIS (base_link)                      -->
+  <!--  270 mm diameter circular plate, 5 mm thick    -->
+  <!--  Mass includes plate + motors + electronics    -->
+  <!-- ============================================== -->
+
+  <link name="base_link">
+
+    <!-- Bottom plate (270 mm diameter, 5 mm thick, rotated 90° so wheel cutouts sit on Y-axis) -->
+    <visual name="bottom_plate">
+      <origin xyz="0 0 0" rpy="0 0 1.5707963"/>
+      <geometry>
+        <mesh filename="Base.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="chassis_blue"/>
+    </visual>
+
+    <!-- Top plate (~45 mm above bottom plate on standoffs) -->
+    <visual name="top_plate">
+      <origin xyz="0 0 0.045" rpy="0 0 1.5707963"/>
+      <geometry>
+        <mesh filename="Base.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="chassis_blue"/>
+    </visual>
+
+    <collision>
+      <!-- Full 2-deck chassis envelope: 270 mm diameter (r=0.135 m), 50 mm height -->
+      <origin xyz="0 0 0.025" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.135" length="0.050"/>
+      </geometry>
+    </collision>
+
+    <inertial>
+      <!-- Solid cylinder approximation: m=2.5 kg, r=0.135 m, h=0.050 m (effective height) -->
+      <!-- Ixx = Iyy = (1/12)*m*(3r² + h²) = 0.01190                                      -->
+      <!-- Izz = (1/2)*m*r² = 0.02276                                                      -->
+      <origin xyz="0 0 0.0025" rpy="0 0 0"/>
+      <mass value="2.5"/>
+      <inertia ixx="0.01190" ixy="0" ixz="0"
+               iyy="0.01190" iyz="0"
+               izz="0.02276"/>
+    </inertial>
+
+  </link>
+
+
+  <!-- ============================================== -->
+  <!--  LEFT WHEEL                                    -->
+  <!--  Diameter: 98 mm   Width: 39 mm                -->
+  <!--  STL center offset: (-5.64, 1.43, -20.77) mm   -->
+  <!-- ============================================== -->
+
+  <link name="left_wheel_link">
+
+    <visual>
+      <!-- Translate mesh so its geometric center aligns with the joint axis -->
+      <!-- Offset = negated STL center, scaled to meters                      -->
+      <origin xyz="0.00564 -0.00143 0.02077" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="TireL.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="wheel_dark"/>
+    </visual>
+
+    <collision>
+      <!-- Cylinder aligned to the wheel axle (Y-axis) -->
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="0.049" length="0.039"/>
+      </geometry>
+    </collision>
+
+    <inertial>
+      <!-- Solid cylinder: m=0.35 kg, r=0.049 m, h=0.039 m       -->
+      <!-- Iyy (axle) = (1/2)*m*r² = 0.000421                    -->
+      <!-- Ixx = Izz = (1/12)*m*(3r² + h²) = 0.000254            -->
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.35"/>
+      <inertia ixx="0.000254" ixy="0" ixz="0"
+               iyy="0.000421" iyz="0"
+               izz="0.000254"/>
+    </inertial>
+
+  </link>
+
+  <joint name="left_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="left_wheel_link"/>
+    <!-- Left side: Y = +0.110 m (half of 220 mm wheel track) -->
+    <origin xyz="0 0.110 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <dynamics damping="0.01" friction="0.005"/>
+    <limit effort="5.0" velocity="20.0"/>
+  </joint>
+
+
+  <!-- ============================================== -->
+  <!--  RIGHT WHEEL                                   -->
+  <!--  Diameter: 98 mm   Width: 39 mm                -->
+  <!--  STL center offset: (-5.64, 1.43, +20.77) mm   -->
+  <!-- ============================================== -->
+
+  <link name="right_wheel_link">
+
+    <visual>
+      <!-- Z offset sign flipped vs. left wheel (mirrored STL) -->
+      <origin xyz="0.00564 -0.00143 -0.02077" rpy="0 0 0"/>
+      <geometry>
+        <mesh filename="TireR.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="wheel_dark"/>
+    </visual>
+
+    <collision>
+      <origin xyz="0 0 0" rpy="1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="0.049" length="0.039"/>
+      </geometry>
+    </collision>
+
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.35"/>
+      <inertia ixx="0.000254" ixy="0" ixz="0"
+               iyy="0.000421" iyz="0"
+               izz="0.000254"/>
+    </inertial>
+
+  </link>
+
+  <joint name="right_wheel_joint" type="continuous">
+    <parent link="base_link"/>
+    <child link="right_wheel_link"/>
+    <!-- Right side: Y = -0.110 m -->
+    <origin xyz="0 -0.110 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <dynamics damping="0.01" friction="0.005"/>
+    <limit effort="5.0" velocity="20.0"/>
+  </joint>
+
+
+  <!-- ============================================== -->
+  <!--  FRONT CASTER (ball caster, 25 mm diameter)    -->
+  <!--  Red ball visible in Fusion 360 screenshots    -->
+  <!-- ============================================== -->
+
+  <link name="front_caster_link">
+
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.0125"/>
+      </geometry>
+      <material name="caster_red"/>
+    </visual>
+
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.0125"/>
+      </geometry>
+    </collision>
+
+    <inertial>
+      <!-- Solid sphere: I = (2/5)*m*r² = 0.0000031 -->
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.05"/>
+      <inertia ixx="0.0000031" ixy="0" ixz="0"
+               iyy="0.0000031" iyz="0"
+               izz="0.0000031"/>
+    </inertial>
+
+  </link>
+
+  <joint name="front_caster_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="front_caster_link"/>
+    <!-- X = +0.115 (front of chassis)                                              -->
+    <!-- Z = -(wheel_radius - caster_radius) = -(0.049 - 0.0125) = -0.0365         -->
+    <!--     so the ball bottom touches the ground at the same level as the wheels   -->
+    <origin xyz="0.115 0 -0.0365" rpy="0 0 0"/>
+  </joint>
+
+
+  <!-- ============================================== -->
+  <!--  REAR CASTER (ball caster, 25 mm diameter)     -->
+  <!-- ============================================== -->
+
+  <link name="rear_caster_link">
+
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.0125"/>
+      </geometry>
+      <material name="caster_red"/>
+    </visual>
+
+    <collision>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <sphere radius="0.0125"/>
+      </geometry>
+    </collision>
+
+    <inertial>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <mass value="0.05"/>
+      <inertia ixx="0.0000031" ixy="0" ixz="0"
+               iyy="0.0000031" iyz="0"
+               izz="0.0000031"/>
+    </inertial>
+
+  </link>
+
+  <joint name="rear_caster_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="rear_caster_link"/>
+    <origin xyz="-0.115 0 -0.0365" rpy="0 0 0"/>
+  </joint>
+
+
+  <!-- ============================================== -->
+  <!--  GAZEBO FRICTION PROPERTIES                    -->
+  <!-- ============================================== -->
+
+  <gazebo reference="left_wheel_link">
+    <mu1>1.5</mu1>
+    <mu2>1.5</mu2>
+    <kp>1000000</kp>
+    <kd>100</kd>
+  </gazebo>
+
+  <gazebo reference="right_wheel_link">
+    <mu1>1.5</mu1>
+    <mu2>1.5</mu2>
+    <kp>1000000</kp>
+    <kd>100</kd>
+  </gazebo>
+
+  <!-- Casters: near-frictionless for free sliding -->
+  <gazebo reference="front_caster_link">
+    <mu1>0.001</mu1>
+    <mu2>0.001</mu2>
+  </gazebo>
+
+  <gazebo reference="rear_caster_link">
+    <mu1>0.001</mu1>
+    <mu2>0.001</mu2>
+  </gazebo>
+
+
+</robot>
+
