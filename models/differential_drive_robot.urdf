@@ -5,10 +5,10 @@
   ===========================================================
   Designed in Fusion 360, exported STL meshes, hand-built URDF.
 
-  Measured from STL bounding boxes:
+  Robot Specifications:
     Chassis (Base.stl)    :  270 mm diameter disc, 5 mm thick
-    Left tire (TireL.stl) :  98 mm diameter, 39 mm wide
-    Right tire (TireR.stl):  98 mm diameter, 39 mm wide
+    Left tire (TireL.stl) :  83 mm diameter, 39 mm wide
+    Right tire (TireR.stl):  83 mm diameter, 39 mm wide
 
   Assembly (from Fusion 360 screenshots):
     Wheel track (center-to-center) : 220 mm
@@ -59,8 +59,8 @@
     <parent link="base_footprint"/>
     <child link="base_link"/>
     <!-- base_link sits at wheel-axle height above ground -->
-    <!-- height = wheel_radius = 49.0 mm = 0.049 m        -->
-    <origin xyz="0 0 0.049" rpy="0 0 0"/>
+    <!-- height = wheel_radius = 41.5 mm = 0.0415 m       -->
+    <origin xyz="0 0 0.0415" rpy="0 0 0"/>
   </joint>
 
 
@@ -114,18 +114,17 @@
 
   <!-- ============================================== -->
   <!--  LEFT WHEEL                                    -->
-  <!--  Diameter: 98 mm   Width: 39 mm                -->
-  <!--  STL center offset: (-5.64, 1.43, -20.77) mm   -->
+  <!--  Diameter: 83 mm   Width: 39 mm                -->
+  <!--  Radius: 41.5 mm = 0.0415 m                    -->
   <!-- ============================================== -->
 
   <link name="left_wheel_link">
 
     <visual>
       <!-- Translate mesh so its geometric center aligns with the joint axis -->
-      <!-- Offset = negated STL center, scaled to meters                      -->
-      <origin xyz="0.00564 -0.00143 0.02077" rpy="0 0 0"/>
+      <origin xyz="0.00477 -0.00143 0.01759" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="TireL.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="TireL.stl" scale="0.0008465 0.001 0.0008465"/>
       </geometry>
       <material name="wheel_dark"/>
     </visual>
@@ -134,19 +133,19 @@
       <!-- Cylinder aligned to the wheel axle (Y-axis) -->
       <origin xyz="0 0 0" rpy="1.5708 0 0"/>
       <geometry>
-        <cylinder radius="0.049" length="0.039"/>
+        <cylinder radius="0.0415" length="0.039"/>
       </geometry>
     </collision>
 
     <inertial>
-      <!-- Solid cylinder: m=0.35 kg, r=0.049 m, h=0.039 m       -->
-      <!-- Iyy (axle) = (1/2)*m*r² = 0.000421                    -->
-      <!-- Ixx = Izz = (1/12)*m*(3r² + h²) = 0.000254            -->
+      <!-- Solid cylinder: m=0.35 kg, r=0.0415 m, h=0.039 m      -->
+      <!-- Iyy (axle) = (1/2)*m*r² = 0.000301                    -->
+      <!-- Ixx = Izz = (1/12)*m*(3r² + h²) = 0.000195            -->
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="0.35"/>
-      <inertia ixx="0.000254" ixy="0" ixz="0"
-               iyy="0.000421" iyz="0"
-               izz="0.000254"/>
+      <inertia ixx="0.000195" ixy="0" ixz="0"
+               iyy="0.000301" iyz="0"
+               izz="0.000195"/>
     </inertial>
 
   </link>
@@ -164,17 +163,17 @@
 
   <!-- ============================================== -->
   <!--  RIGHT WHEEL                                   -->
-  <!--  Diameter: 98 mm   Width: 39 mm                -->
-  <!--  STL center offset: (-5.64, 1.43, +20.77) mm   -->
+  <!--  Diameter: 83 mm   Width: 39 mm                -->
+  <!--  Radius: 41.5 mm = 0.0415 m                    -->
   <!-- ============================================== -->
 
   <link name="right_wheel_link">
 
     <visual>
       <!-- Z offset sign flipped vs. left wheel (mirrored STL) -->
-      <origin xyz="0.00564 -0.00143 -0.02077" rpy="0 0 0"/>
+      <origin xyz="0.00477 -0.00143 -0.01759" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="TireR.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="TireR.stl" scale="0.0008465 0.001 0.0008465"/>
       </geometry>
       <material name="wheel_dark"/>
     </visual>
@@ -182,16 +181,16 @@
     <collision>
       <origin xyz="0 0 0" rpy="1.5708 0 0"/>
       <geometry>
-        <cylinder radius="0.049" length="0.039"/>
+        <cylinder radius="0.0415" length="0.039"/>
       </geometry>
     </collision>
 
     <inertial>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <mass value="0.35"/>
-      <inertia ixx="0.000254" ixy="0" ixz="0"
-               iyy="0.000421" iyz="0"
-               izz="0.000254"/>
+      <inertia ixx="0.000195" ixy="0" ixz="0"
+               iyy="0.000301" iyz="0"
+               izz="0.000195"/>
     </inertial>
 
   </link>
@@ -243,10 +242,10 @@
   <joint name="front_caster_joint" type="fixed">
     <parent link="base_link"/>
     <child link="front_caster_link"/>
-    <!-- X = +0.115 (front of chassis)                                              -->
-    <!-- Z = -(wheel_radius - caster_radius) = -(0.049 - 0.0125) = -0.0365         -->
-    <!--     so the ball bottom touches the ground at the same level as the wheels   -->
-    <origin xyz="0.115 0 -0.0365" rpy="0 0 0"/>
+    <!-- X = +0.115 (front of chassis)                                               -->
+    <!-- Z = -(wheel_radius - caster_radius) = -(0.0415 - 0.0125) = -0.0290          -->
+    <!--     so the ball bottom touches the ground at the same level as the wheels    -->
+    <origin xyz="0.115 0 -0.0290" rpy="0 0 0"/>
   </joint>
 
 
@@ -284,7 +283,7 @@
   <joint name="rear_caster_joint" type="fixed">
     <parent link="base_link"/>
     <child link="rear_caster_link"/>
-    <origin xyz="-0.115 0 -0.0365" rpy="0 0 0"/>
+    <origin xyz="-0.115 0 -0.0290" rpy="0 0 0"/>
   </joint>
 
 

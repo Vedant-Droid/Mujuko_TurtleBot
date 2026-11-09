@@ -1,0 +1,12 @@
+{
+  "motors_ok": true,
+  "left_ticks": 140,
+  "right_ticks": 140,
+  "left_encoder_sign": 1,
+  "right_encoder_sign": 1,
+  "left_trim": 1.0,
+  "right_trim": 1.0,
+  "left_speed_ms": 0.122,
+  "right_speed_ms": 0.122,
+  "wheel_radius_m": 0.0415
+}

@@ -8,7 +8,7 @@ import mujoco
 ARENA = 2.2
 LIDAR_MAX = 3.0
 ROBOT_R = 0.135          # chassis radius (270 mm diameter / 2)
-WHEEL_R = 0.049          # wheel radius (98 mm diameter / 2)
+WHEEL_R = 0.0415         # wheel radius (83 mm diameter / 2)
 WHEEL_TRACK = 0.220      # distance between left & right wheels (220 mm)
 OBSTACLES = [
     (-0.55, -0.15, 0.23),
@@ -47,14 +47,16 @@ def make_xml():
       </visual>
 
       <asset>
+        <!-- 270 mm diameter base plate -->
         <mesh name="base" file="Base.stl"
               scale="0.001 0.001 0.001"/>
 
+        <!-- 83 mm diameter wheels (scaled from 98.05 mm raw STL -> 0.0008465 in X/Z) -->
         <mesh name="left_wheel" file="TireL.stl"
-              scale="0.001 0.001 0.001"/>
+              scale="0.0008465 0.001 0.0008465"/>
 
         <mesh name="right_wheel" file="TireR.stl"
-              scale="0.001 0.001 0.001"/>
+              scale="0.0008465 0.001 0.0008465"/>
       </asset>
 
       <worldbody>
@@ -67,7 +69,7 @@ def make_xml():
         {walls}
         {obstacles}
 
-        <body name="robot" mocap="true" pos="-1.6 -1.6 0.049">
+        <body name="robot" mocap="true" pos="-1.6 -1.6 0.0415">
 
           <geom name="base_bottom_visual"
                 type="mesh"
@@ -92,7 +94,7 @@ def make_xml():
             <geom name="left_wheel_visual"
                   type="mesh"
                   mesh="left_wheel"
-                  pos="0.00564 -0.00143 0.02077"
+                  pos="0.00477 -0.00143 0.01759"
                   euler="0 0 0"
                   rgba="0.2 0.2 0.2 1"
                   contype="0"
@@ -104,26 +106,26 @@ def make_xml():
             <geom name="right_wheel_visual"
                   type="mesh"
                   mesh="right_wheel"
-                  pos="0.00564 -0.00143 -0.02077"
+                  pos="0.00477 -0.00143 -0.01759"
                   euler="0 0 0"
                   rgba="0.2 0.2 0.2 1"
                   contype="0"
                   conaffinity="0"/>
           </body>
 
-          <!-- Front caster ball (along +X forward axis) -->
+          <!-- Front caster ball (along +X forward axis, flush with 83mm wheels) -->
           <geom name="front_caster"
                 type="sphere"
-                pos="0.115 0 -0.0365"
+                pos="0.115 0 -0.0290"
                 size="0.0125"
                 rgba="0.75 0.15 0.15 1"
                 contype="0"
                 conaffinity="0"/>
 
-          <!-- Rear caster ball (along -X rear axis) -->
+          <!-- Rear caster ball (along -X rear axis, flush with 83mm wheels) -->
           <geom name="rear_caster"
                 type="sphere"
-                pos="-0.115 0 -0.0365"
+                pos="-0.115 0 -0.0290"
                 size="0.0125"
                 rgba="0.75 0.15 0.15 1"
                 contype="0"
@@ -224,7 +226,7 @@ class TurtleBotNavEnv(gym.Env):
         ]).astype(np.float32)
 
     def _sync_model(self):
-        self.data.mocap_pos[self.robot_mid] = [self.x, self.y, 0.049]
+        self.data.mocap_pos[self.robot_mid] = [self.x, self.y, WHEEL_R]
         self.data.mocap_quat[self.robot_mid] = [
             math.cos(self.yaw / 2), 0, 0, math.sin(self.yaw / 2)
         ]
